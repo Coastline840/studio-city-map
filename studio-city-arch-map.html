@@ -358,43 +358,18 @@ async function geocode(addr) {
   return d.length ? {lat:parseFloat(d[0].lat), lng:parseFloat(d[0].lon)} : null;
 }
 
-async function init() {
-  let cache = {};
-  try { cache = JSON.parse(localStorage.getItem(CACHE)||'{}'); } catch(e) {}
+function init() {
+  const FIXED = {1: [34.1483, -118.3957], 2: [34.1328, -118.3838], 3: [34.1358, -118.3808], 4: [34.152, -118.389], 5: [34.1362, -118.3842], 6: [34.1355, -118.3846], 7: [34.144, -118.404], 8: [34.1348, -118.3854], 9: [34.1344, -118.3857], 10: [34.1455, -118.3975], 11: [34.1452, -118.4082], 12: [34.1352, -118.3851], 13: [34.1372, -118.3885], 14: [34.1378, -118.3848], 15: [34.1332, -118.3842], 16: [34.1362, -118.4062], 17: [34.149, -118.3957], 18: [34.1368, -118.3812], 19: [34.1413, -118.3965], 20: [34.1512, -118.3972], 21: [34.1462, -118.4038], 22: [34.1484, -118.3968], 23: [34.133, -118.3882], 24: [34.137, -118.4015], 25: [34.12768, -118.38443], 26: [34.1432, -118.4025], 27: [34.1338, -118.3942], 28: [34.1388, -118.4072], 29: [34.1318, -118.3922], 30: [34.1435, -118.4028], 31: [34.1372, -118.4058], 32: [34.1428, -118.4022]};
 
-  const lbar = document.getElementById('lbar');
-  const lsub = document.getElementById('lsub');
-  const bounds = [];
-  let done = 0;
+  HOMES.forEach(h => {
+    const c = FIXED[h.id];
+    if (c) { h.lat = c[0]; h.lng = c[1]; }
+    if (h.fixedLat) { h.lat = h.fixedLat; h.lng = h.fixedLng; }
+    if (h.lat) addPin(h);
+  });
 
-  for (let i=0; i<HOMES.length; i++) {
-    const h = {...HOMES[i]};
-    lbar.style.width = Math.round(i/HOMES.length*100)+'%';
-    lsub.textContent = `Locating ${h.name}…`;
-
-    if (h.fixedLat) {
-      h.lat = h.fixedLat; h.lng = h.fixedLng;
-    } else if (cache[h.id]) {
-      h.lat = cache[h.id].lat; h.lng = cache[h.id].lng;
-    } else {
-      const r = await geocode(h.addr);
-      await new Promise(res => setTimeout(res, 1150));
-      if (r) { h.lat=r.lat; h.lng=r.lng; cache[h.id]={lat:h.lat,lng:h.lng}; }
-      else continue;
-    }
-
-    addPin(h);
-    bounds.push([h.lat,h.lng]);
-    done++;
-  }
-
-  try { localStorage.setItem(CACHE, JSON.stringify(cache)); } catch(e) {}
-
-  lbar.style.width='100%';
-  await new Promise(res => setTimeout(res, 300));
   document.getElementById('loading').style.display='none';
-  if (bounds.length) {} // fixed view set on map init
-  document.getElementById('hcount').textContent = done+' homes';
+  document.getElementById('hcount').textContent = HOMES.length+' homes';
 }
 
 init();
