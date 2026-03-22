@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio City Architectural Homes | Debbie Pisaro</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --schindler: #B84A2E; --neutra: #2E6E4A; --lautner: #5C3A8E; --other: #4A6670;
+      --cream: #F9F6F1; --white: #FFFFFF; --ink: #1C1C1C; --muted: #6B6860;
+      --border: #E2DDD7; --header-bg: #1A1A1A; --hh: 56px; --sw: 420px;
+      --serif: 'Playfair Display', Georgia, serif; --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    html, body { height: 100%; overflow: hidden; background: var(--cream); }
+    #app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* HEADER */
+    #header { height: var(--hh); background: var(--header-bg); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px; flex-shrink: 0; z-index: 1000; }
+    #hl { display: flex; align-items: baseline; gap: 10px; }
+    #header h1 { font-family: var(--serif); font-size: 17px; font-weight: 400; color: #F9F6F1; letter-spacing: .02em; }
+    #hsub { font-family: var(--sans); font-size: 11px; font-weight: 300; color: #888; letter-spacing: .05em; text-transform: uppercase; }
+    #hcount { font-family: var(--sans); font-size: 12px; color: #888; font-weight: 300; }
+
+    /* BODY */
+    #body { display: flex; flex: 1; overflow: hidden; }
+
+    /* SIDEBAR */
+    #sidebar { width: var(--sw); background: var(--white); display: flex; flex-direction: column;
+      border-right: 1px solid var(--border); flex-shrink: 0; z-index: 500; }
+    #filters { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); background: var(--cream); }
+    #fl { font-family: var(--sans); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+    #fbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fb { display: flex; align-items: center; gap: 5px; padding: 6px 12px 6px 9px; border-radius: 20px;
+      border: 1.5px solid transparent; background: var(--white); cursor: pointer; font-family: var(--sans);
+      font-size: 13px; font-weight: 500; transition: all .15s; user-select: none; }
+    .fb .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .fb[data-cat="schindler"] { color: var(--schindler); }
+    .fb[data-cat="neutra"]    { color: var(--neutra); }
+    .fb[data-cat="lautner"]   { color: var(--lautner); }
+    .fb[data-cat="other"]     { color: var(--other); }
+    .fb.on[data-cat="schindler"] { border-color: var(--schindler); background: #FEF0EC; }
+    .fb.on[data-cat="neutra"]    { border-color: var(--neutra);    background: #EDF5F0; }
+    .fb.on[data-cat="lautner"]   { border-color: var(--lautner);   background: #F2EDF8; }
+    .fb.on[data-cat="other"]     { border-color: var(--other);     background: #EDF1F3; }
+    .fb:not(.on) { opacity: .38; }
+    .fb:hover { opacity: 1; }
+
+    #cards { overflow-y: auto; flex: 1; padding: 10px 12px 16px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    #cards::-webkit-scrollbar { width: 4px; }
+    #cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .card { padding: 12px 12px 10px; border-radius: 6px; border: 1px solid var(--border);
+      margin-bottom: 8px; cursor: pointer; transition: all .15s; background: var(--white); position: relative; }
+    .card:hover { border-color: #C0BAB2; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .card.sel { border-color: #1A1A1A; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+    .ca { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 6px 0 0 6px; }
+    .ci { padding-left: 10px; }
+    .ct { font-family: var(--serif); font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 3px; }
+    .cm { font-family: var(--sans); font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+    .cms { color: var(--border); }
+    .cadr { font-family: var(--sans); font-size: 12.5px; color: #AAA5A0; margin-top: 3px; font-weight: 300; }
+    .ctag { display: inline-block; font-family: var(--sans); font-size: 11px; font-weight: 500;
+      letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-top: 6px; }
+
+    /* MAP */
+    #map { flex: 1; position: relative; }
+    .leaflet-container { font-family: var(--sans) !important; }
+    .leaflet-popup-content-wrapper { border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
+      padding: 0 !important; overflow: hidden; border: 1px solid var(--border); }
+    .leaflet-popup-content { margin: 0 !important; width: 240px !important; }
+    .leaflet-popup-tip-container { display: none; }
+    .leaflet-popup-close-button { color: #888 !important; font-size: 18px !important; top: 8px !important; right: 10px !important; }
+    .pi { padding: 16px 16px 14px; }
+    .ptag { font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+    .pname { font-family: var(--serif); font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 4px; }
+    .pmeta { font-family: var(--sans); font-size: 12px; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; }
+    .pdesc { font-family: var(--sans); font-size: 12.5px; color: #555; line-height: 1.6; }
+    .phcm { margin-top: 8px; font-family: var(--sans); font-size: 11px; color: #999; font-style: italic; }
+    .plink { display: inline-block; margin-top: 10px; font-family: var(--sans); font-size: 11.5px; font-weight: 500;
+      color: var(--schindler); text-decoration: none; letter-spacing: .01em; }
+    .plink:hover { text-decoration: underline; }
+
+    /* LEGEND */
+    #legend { position: absolute; bottom: 24px; right: 16px; z-index: 999;
+      background: rgba(255,255,255,.96); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 14px; pointer-events: none; box-shadow: 0 2px 12px rgba(0,0,0,.1); }
+    #ltitle { font-family: var(--sans); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+    .lr { display: flex; align-items: center; gap: 7px; margin-bottom: 6px;
+      font-family: var(--sans); font-size: 12px; color: var(--ink); }
+    .lr:last-child { margin-bottom: 0; }
+    .lpin { width: 14px; height: 18px; flex-shrink: 0; }
+
+    /* LOADING */
+    #loading { position: absolute; inset: 0; background: rgba(249,246,241,.93);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 2000; gap: 14px; }
+    #ltxt { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+    #ltrack { width: 220px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    #lbar { height: 100%; background: var(--schindler); border-radius: 2px; width: 0%; transition: width .3s ease; }
+    #lsub { font-family: var(--sans); font-size: 12px; color: var(--muted); text-align: center; max-width: 270px; }
+    #lnote { font-family: var(--sans); font-size: 11px; color: #aaa; text-align: center; max-width: 270px; }
+
+    #brand { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 999;
+      font-family: var(--sans); font-size: 11px; color: #999; pointer-events: none; white-space: nowrap; }
+    #brand a { color: #888; text-decoration: none; pointer-events: auto; }
+
+    /* STORIES */
+    #stories { padding: 14px 18px 13px; border-bottom: 1px solid var(--border); background: var(--white); }
+    #stories-label { font-family: var(--serif); font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: .01em; margin-bottom: 9px; }
+    .slink { display: flex; align-items: baseline; gap: 5px; font-family: var(--sans); font-size: 13px;
+      color: var(--schindler); text-decoration: none; font-weight: 500; line-height: 1.5; margin-bottom: 6px; transition: opacity .15s; }
+    .slink:last-child { margin-bottom: 0; }
+    .slink:hover { opacity: .65; }
+    .slink::before { content: '→'; font-size: 11px; flex-shrink: 0; }
+
+    @media (max-width: 680px) {
+      #body { flex-direction: column; }
+      #sidebar { width: 100%; height: 260px; border-right: none; border-top: 1px solid var(--border); order: 2; }
+      #map { order: 1; min-height: 340px; }
+      #brand { display: none; }
+      #legend { bottom: 12px; right: 10px; }
+      :root { --hh: 48px; }
+      #header h1 { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="hl">
+      <h1>Studio City Architectural Homes</h1>
+      <span id="hsub">debbiepisaro.com</span>
+    </div>
+    <span id="hcount">Loading…</span>
+  </div>
+  <div id="body">
+    <div id="sidebar">
+      <div id="stories">
+        <div id="stories-label">Stories from the Map</div>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/james-de-long-hackett-house-studio-city" target="_blank">The Hackett House: A Wright Legacy in Studio City</a>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/gregory-ain-studio-city-home" target="_blank">Gregory Ain's Tufeld Residence</a>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/usc-case-study-home-studio-city-1961" target="_blank">The USC Case Study Houses on Laurelcrest</a>
+        <a class="slink" href="https://www.debbiepisaro.com/blog/sportsmens-lodge-studio-city-history" target="_blank">Sportsmen's Lodge: The Dirt Road and the Trout</a>
+      </div>
+      <div id="filters">
+        <div id="fl">Filter by Architect</div>
+        <div id="fbtns">
+          <button class="fb on" data-cat="schindler"><span class="dot" style="background:var(--schindler)"></span>Schindler</button>
+          <button class="fb on" data-cat="neutra"><span class="dot" style="background:var(--neutra)"></span>Neutra</button>
+          <button class="fb on" data-cat="lautner"><span class="dot" style="background:var(--lautner)"></span>Lautner</button>
+          <button class="fb on" data-cat="other"><span class="dot" style="background:var(--other)"></span>Other</button>
+        </div>
+      </div>
+      <div id="cards"></div>
+    </div>
+
+    <div id="map">
+      <div id="loading">
+        <div id="ltxt">Locating Homes…</div>
+        <div id="ltrack"><div id="lbar"></div></div>
+        <div id="lsub">Geocoding addresses via OpenStreetMap</div>
+        <div id="lnote">First load takes ~30 seconds · Results are cached after that</div>
+      </div>
+
+      <div id="legend">
+        <div id="ltitle">Map Key</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--schindler)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>R.M. Schindler</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--neutra)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>Richard Neutra</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--lautner)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>John Lautner</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--other)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>Other Architects</div>
+      </div>
+      <div id="brand"><a href="https://debbiepisaro.com" target="_blank">debbiepisaro.com</a> · Studio City Architectural Homes</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const HOMES = [
+  { id:1,  name:"Presburger House",                 addr:"4255 Agnes Ave, Studio City, CA 91604",          year:1945, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    desc:"A hallmark of Schindler's modernist vision — clean lines and deep integration with its natural surroundings. A key stop on any architectural tour of Studio City." },
+  { id:2,  name:"Kallis House",                     addr:"3580 Multiview Dr, Studio City, CA 91604",       year:1947, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    desc:"Angular design and a minimalist approach are trademarks of Schindler's hillside style. Framed views toward Universal Studios — a quintessential Hollywood Hills perch." },
+  { id:3,  name:"Fredonia Apartment Building",      addr:"3625 Fredonia Dr, Studio City, CA 91604",        year:1964, by:"Raymond Kappe",                cat:"other",     hcm:null,
+    desc:"Kappe's organic forms and open spaces bring the hillside inside. A fine example of the seamless integration that defines California modern residential architecture." },
+  { id:4,  name:"Laurelwood Apartment Building",    addr:"11833 Laurelwood Dr, Studio City, CA 91604",     year:1948, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    desc:"Schindler's modernist ideals applied to multi-unit living. An elegant, often-overlooked gem in Studio City's architectural canon." },
+  { id:5,  name:"Goodwin House",                    addr:"3807 Reklaw Dr, Studio City, CA 91604",          year:1940, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    desc:"An early Schindler work reflecting his approach to light, space, and materials. Debbie sold this home years ago when it was still in original, untouched condition." },
+  { id:6,  name:"Gold House",                       addr:"3758 Reklaw Dr, Studio City, CA 91604",          year:1945, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    desc:"A stunning post-war Schindler residence. Part of a remarkable cluster of Schindler works along Reklaw Drive — one of Studio City's most significant architectural streets." },
+  { id:7,  name:"Lechner House",                    addr:"11600 Amanda Dr, Studio City, CA 91604",         year:1948, by:"Rudolph Schindler",            cat:"schindler", hcm:"HCM #1024",
+    desc:"Celebrated for its blend of functionality and avant-garde design. Walls of glass open interiors to park-like grounds. Meticulously restored by Studio Shamshiri." },
+  { id:8,  name:"Waxman House",                     addr:"3644 Buena Park Dr, Studio City, CA 91604",      year:1964, by:"J. Barry Moffitt",             cat:"other",     hcm:null,
+    desc:"Mid-century elegance on Buena Park Drive — a canyon street with an unusually high concentration of design-forward homes." },
+  { id:9,  name:"Roth House",                       addr:"3624 Buena Park Dr, Studio City, CA 91604",      year:1945, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    desc:"A sought-after Schindler landmark that exemplifies his unique spatial intelligence. Rare to come to market — and when it does, it moves fast." },
+  { id:10, name:"Chase Bank",                       addr:"12122 Ventura Blvd, Studio City, CA 91604",      year:1968, by:"Millard Sheets",               cat:"other",     hcm:null,
+    desc:"A reminder that mid-century architecture didn't stop at the front door. Sheets' mosaic-clad commercial buildings were civic landmarks across California." },
+  { id:11, name:"Ralph's Market",                   addr:"11865 Ventura Blvd, Studio City, CA 91604",      year:1972, by:"R. Leon Edgar",                cat:"other",     hcm:null,
+    desc:"Architecture doesn't have to be residential to matter. This commercial building stands out for its modernist design and role in Studio City's streetscape history." },
+  { id:12, name:"Simon House",                      addr:"3649 Buena Park Dr, Studio City, CA 91604",      year:1989, by:"Marshall Lewis",               cat:"other",     hcm:null,
+    desc:"A later addition to Studio City's architectural conversation — maintaining harmony with the surrounding mid-century homes while finding its own contemporary voice." },
+  { id:13, name:"Baron House",                      addr:"3860 Berry Dr, Studio City, CA 91604",           year:1965, by:"John Lautner",                 cat:"lautner",   hcm:null,
+    desc:"Lautner's signature organic design and dramatic use of space rendered on a Studio City hillside. A testament to his legacy as one of the great American modernists." },
+  { id:14, name:"Estes Residence",                  addr:"3817 Broadlawn Dr, Studio City, CA 91604",       year:1935, by:"William Kesling",              cat:"other",     hcm:null,
+    desc:"Kesling's Streamline Moderne — an elegant offshoot of Art Deco — embodies the optimism of 1930s Los Angeles. One of the earliest design-forward homes in these hills." },
+  { id:15, name:"Halverson Residence",              addr:"3584 Multiview Dr, Studio City, CA 91604",       year:1959, by:"Buff, Straub & Hensman",       cat:"other",     hcm:null,
+    desc:"A striking mid-century modern design by the acclaimed BSH firm. Their emphasis on indoor-outdoor harmony helped define California modern living for a generation." },
+  { id:16, name:"St. Michael & All Angels Church",  addr:"3650 Coldwater Canyon Ave, Studio City, CA 91604", year:1959, by:"A. Quincy Jones & Frederic Emmons", cat:"other", hcm:null,
+    desc:"A masterpiece of mid-century ecclesiastical design. Jones and Emmons brought the same innovation to sacred space that defined their celebrated residential work." },
+  { id:17, name:"Agnes Ave Historic District",      addr:"4100 Agnes Ave, Studio City, CA 91604",          year:1938, by:"Various",                      cat:"other",     hcm:null,
+    desc:"A cohesive collection of American Colonial Revival homes — a charming counterpoint to the modernism that dominates Studio City's architectural story." },
+  { id:18, name:"Blair Residence",                  addr:"3763 Fredonia Dr, Studio City, CA 91604",        year:1939, by:"Harwell Hamilton Harris",      cat:"other",     hcm:null,
+    desc:"A rare example of early modernism in the Valley. Harris' minimalist aesthetic had an outsized influence on LA architecture that remains underappreciated." },
+  { id:19, name:"Virzintas Penthouse",              addr:"4336 Laurel Canyon Blvd, Studio City, CA 91604", year:1949, by:"Richard Neutra",               cat:"neutra",    hcm:null,
+    desc:"Neutra expanded an existing structure into a unique tri-plex, demonstrating his ability to merge new design with pre-existing forms. A rare Neutra on the Laurel Canyon corridor." },
+  { id:20, name:"Ebert House",                      addr:"12000 Iredell St, Studio City, CA 91604",        year:1942, by:"Raphael Soriano",              cat:"other",     hcm:null,
+    desc:"A classic Soriano work using industrial materials to realize the principles of modern architecture. A quiet gem in the Studio City flats." },
+  { id:21, name:"Cornelius Deasy Residence",        addr:"11000 Valley Spring Ln, Studio City, CA 91604",  year:1950, by:"Richard Neutra",               cat:"neutra",    hcm:null,
+    desc:"A Neutra masterpiece focused on harmony between architecture and nature. One of two confirmed Neutra works within Studio City's residential core." },
+  { id:22, name:"Brady Bunch House",                addr:"11222 Dilling St, Studio City, CA 91604",        year:1959, by:"Harry M. Londelius",           cat:"other",     hcm:"HCM (2026)",
+    desc:"Made famous by the TV series, this mid-century modern home was unanimously designated a Historic-Cultural Monument by the LA City Council in March 2026." },
+  { id:23, name:"Straub Residence",                 addr:"3549 Laurelvale Dr, Studio City, CA 91604",      year:1953, by:"Carl Straub",                  cat:"other",     hcm:null,
+    desc:"Features the distinctive post-war architectural style that swept through Studio City in the 1950s — clean geometry and an honest relationship with the hillside." },
+  { id:24, name:"Autry Residence — Flying A Estate", addr:"3171 Brookdale Rd, Studio City, CA 91604",      year:1949, by:"Unknown",                      cat:"other",     hcm:null,
+    desc:"Long-time home of Gene Autry, the 'Singing Cowboy.' Nearly 8,000 sq ft on 160,000 sq ft of land — old Hollywood charm at ranch scale." },
+  // El Paradiso: coordinates confirmed from LA Cultural Heritage marker #638
+  // 34°7.661′N = 34.127683°, 118°23.066′W = -118.384433°
+  { id:25, name:"El Paradiso (Grossman House)",     addr:"Studio City Hills, CA",
+    fixedLat:34.12768, fixedLng:-118.38443,
+    year:1964, by:"Raphael Soriano",               cat:"other",     hcm:"HCM #638",
+    desc:"Soriano's all-aluminum masterpiece — the first of its kind. Built with 28 sliding glass doors and prefabricated modular panels. Dubbed 'El Paradiso' for its space-age vision of Southern California living." },
+
+  { id:26, name:"Tufeld Residence",                 addr:"11020 Wrightwood Pl, Studio City, CA 91604",  year:1953, by:"Gregory Ain",                  cat:"other",     hcm:null,
+    link:"https://www.debbiepisaro.com/architectural-homes/gregory-ain-studio-city-home",
+    desc:"Designed for voice actor Richard Tufeld, Ain's social living plan integrates seamlessly with Garrett Eckbo's abstract garden landscape and iconic oval pool. First time on the market in 2014 after 60+ years in the family — Debbie had the listing." },
+
+  { id:27, name:"USC Case Study Cluster",            addr:"11534 Laurelcrest Dr, Studio City, CA 91604", year:1961, by:"Chapman & McCorkell",          cat:"other",     hcm:null,
+    link:"https://www.debbiepisaro.com/architectural-homes/usc-case-study-home-studio-city-1961",
+    desc:"Five post-and-beam mid-century homes tucked on a private cul-de-sac in the Studio City hills, built as a USC Case Study project. Jetliner views, wood-beamed ceilings, and walls of glass — an extraordinary architectural cluster largely unknown to the public." },
+
+  { id:28, name:"Dawson House",                      addr:"11681 Valleycrest Rd, Studio City, CA 91604", year:1952, by:"Cliff May",                    cat:"other",     hcm:null,
+    desc:"A rare custom Cliff May ranch in Fryman Canyon — the father of the California ranch house at his early-'50s best. Curved floor plan, open-beam ceilings, and nearly an acre of land. One of only a handful of confirmed May works in Studio City." },
+
+  { id:29, name:"Hackett House",                     addr:"3370 Canton Lane, Studio City, CA 91604",    year:1979, by:"James De Long",                cat:"other",     hcm:null,
+    desc:"Designed in the 1960s and built in 1979 by James De Long — Frank Lloyd Wright Taliesin Fellow and architecture editor of House Beautiful. A faithful California interpretation of Wright's Usonian principles: wide cantilevered overhangs, fine wood detailing, step-down living room, and panoramic canyon views from the Santa Monica Mountains." },
+
+  { id:30, name:"Thies Residence",                   addr:"11051 Wrightwood Lane, Studio City, CA 91604", year:1958, by:"Carl Maston",                 cat:"other",     hcm:null,
+    desc:"An exemplary mid-century modern home from Carl Maston, USC graduate and FAIA. Folded plate ceilings, endless floor-to-ceiling glass, polished cement floors, and seamless indoor-outdoor flow — photographed by Julius Shulman. Maston's Thies Residence was later renovated by Glee creator Ryan Murphy." },
+
+  { id:31, name:"Mayos Residence",                   addr:"3255 Fryman Rd, Studio City, CA 91604",      year:1946, by:"Paul Laszlo",                  cat:"other",     hcm:null,
+    desc:"In 1946 the Mayos commissioned Paul Laszlo to reimagine their Fryman Estates home. Laszlo — the Viennese-born designer to Old Hollywood royalty — transformed it into a shining example of modernism and luxury. On the market for only the second time ever when it last sold." },
+
+  { id:32, name:"Thomas Young Residence",            addr:"3268 Wrightwood Dr, Studio City, CA 91604",  year:1962, by:"William E. Mader",             cat:"other",     hcm:null,
+    desc:"Designed by USC-trained William E. Mader — who went on to become principal architect for the Irvine Company — for comedian Thomas Young. Floor-to-ceiling glass, Mondrian-style frosted windows, and jetliner views from Universal City to the Santa Susanas. One of 14 homes in the Eureka Summit Residential Historic District within Wrightwood Estates." }
+];
+
+const C = { schindler:'#B84A2E', neutra:'#2E6E4A', lautner:'#5C3A8E', other:'#4A6670' };
+const CL = { schindler:'Schindler', neutra:'Neutra', lautner:'Lautner', other:'Other' };
+const CACHE = 'dp_sc_v7';
+
+// Map
+const map = L.map('map', { center:[34.136, -118.378], zoom:15, zoomControl:false });
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
+}).addTo(map);
+L.control.zoom({ position:'topleft' }).addTo(map);
+
+function icon(cat) {
+  const c = C[cat];
+  return L.divIcon({
+    html:`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">
+      <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 21 13 21s13-11.25 13-21C26 5.82 20.18 0 13 0z"
+        fill="${c}" filter="drop-shadow(0 1.5px 1.5px rgba(0,0,0,0.28))"/>
+      <circle cx="13" cy="13" r="5.5" fill="rgba(255,255,255,0.45)"/></svg>`,
+    className:'', iconSize:[26,34], iconAnchor:[13,34], popupAnchor:[0,-36]
+  });
+}
+
+function popupHTML(h) {
+  return `<div class="pi">
+    <div class="ptag" style="color:${C[h.cat]}">${h.by}</div>
+    <div class="pname">${h.name}</div>
+    <div class="pmeta"><span>${h.year}</span><span style="opacity:.4">·</span><span>${h.addr.split(',')[0]}</span></div>
+    <div class="pdesc">${h.desc}</div>
+    ${h.hcm?`<div class="phcm">${h.hcm}</div>`:''}
+    ${h.link?`<a class="plink" href="${h.link}" target="_blank">Read more →</a>`:''}
+  </div>`;
+}
+
+const markers = {}, cardsEl = document.getElementById('cards');
+const activeFilters = new Set(['schindler','neutra','lautner','other']);
+let selId = null;
+
+function selectHome(id, fromCard) {
+  if (selId) document.querySelector(`.card[data-id="${selId}"]`)?.classList.remove('sel');
+  selId = id;
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (card) { card.classList.add('sel'); if (!fromCard) card.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  const {marker,data} = markers[id];
+  if (fromCard) map.setView([data.lat,data.lng], Math.max(map.getZoom(),15), {animate:true});
+  marker.openPopup();
+}
+
+map.on('popupclose', () => {
+  if (selId) { document.querySelector(`.card[data-id="${selId}"]`)?.classList.remove('sel'); selId=null; }
+});
+
+document.querySelectorAll('.fb').forEach(btn => btn.addEventListener('click', () => {
+  const cat = btn.dataset.cat;
+  if (activeFilters.has(cat)) { if (activeFilters.size===1) return; activeFilters.delete(cat); btn.classList.remove('on'); }
+  else { activeFilters.add(cat); btn.classList.add('on'); }
+  let n=0;
+  HOMES.forEach(h => {
+    if (!markers[h.id]) return;
+    const show = activeFilters.has(h.cat);
+    const card = document.querySelector(`.card[data-id="${h.id}"]`);
+    if (show) { if (!map.hasLayer(markers[h.id].marker)) map.addLayer(markers[h.id].marker); if(card) card.style.display=''; n++; }
+    else { if (map.hasLayer(markers[h.id].marker)) map.removeLayer(markers[h.id].marker); if(card) card.style.display='none'; }
+  });
+  document.getElementById('hcount').textContent = n+' home'+(n!==1?'s':'');
+}));
+
+function addPin(h) {
+  const m = L.marker([h.lat,h.lng], {icon:icon(h.cat)});
+  m.bindPopup(popupHTML(h), {maxWidth:260, minWidth:240});
+  m.addTo(map);
+  markers[h.id] = {marker:m, data:h};
+  m.on('click', () => selectHome(h.id, false));
+
+  const c = C[h.cat];
+  const div = document.createElement('div');
+  div.className = 'card'; div.dataset.id = h.id; div.dataset.cat = h.cat;
+  div.innerHTML = `<div class="ca" style="background:${c}"></div>
+    <div class="ci">
+      <div class="ct">${h.name}</div>
+      <div class="cm"><span>${h.year}</span><span class="cms">·</span><span>${h.by}</span></div>
+      <div class="cadr">${h.addr.split(',')[0]}</div>
+      <span class="ctag" style="background:${c}18;color:${c}">${CL[h.cat]}</span>
+    </div>`;
+  div.addEventListener('click', () => { if(!markers[h.id]) return; selectHome(h.id,true); });
+  cardsEl.appendChild(div);
+}
+
+async function geocode(addr) {
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr)}&format=json&limit=1&countrycodes=us`,
+    {headers:{'Accept':'application/json'}});
+  const d = await r.json();
+  return d.length ? {lat:parseFloat(d[0].lat), lng:parseFloat(d[0].lon)} : null;
+}
+
+async function init() {
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem(CACHE)||'{}'); } catch(e) {}
+
+  const lbar = document.getElementById('lbar');
+  const lsub = document.getElementById('lsub');
+  const bounds = [];
+  let done = 0;
+
+  for (let i=0; i<HOMES.length; i++) {
+    const h = {...HOMES[i]};
+    lbar.style.width = Math.round(i/HOMES.length*100)+'%';
+    lsub.textContent = `Locating ${h.name}…`;
+
+    if (h.fixedLat) {
+      h.lat = h.fixedLat; h.lng = h.fixedLng;
+    } else if (cache[h.id]) {
+      h.lat = cache[h.id].lat; h.lng = cache[h.id].lng;
+    } else {
+      const r = await geocode(h.addr);
+      await new Promise(res => setTimeout(res, 1150));
+      if (r) { h.lat=r.lat; h.lng=r.lng; cache[h.id]={lat:h.lat,lng:h.lng}; }
+      else continue;
+    }
+
+    addPin(h);
+    bounds.push([h.lat,h.lng]);
+    done++;
+  }
+
+  try { localStorage.setItem(CACHE, JSON.stringify(cache)); } catch(e) {}
+
+  lbar.style.width='100%';
+  await new Promise(res => setTimeout(res, 300));
+  document.getElementById('loading').style.display='none';
+  if (bounds.length) {} // fixed view set on map init
+  document.getElementById('hcount').textContent = done+' homes';
+}
+
+init();
+</script>
+</body>
+</html>
