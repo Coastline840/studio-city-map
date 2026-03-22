@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Branded Residences & Architectural Homes — Debbie Pisaro</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #0f0f0f;
+    color: #e8e2d9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    background: #0f0f0f;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  #header h1 {
+    font-size: 14px;
+    font-weight: normal;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #c9a96e;
+  }
+  #header p {
+    font-size: 11px;
+    color: #666;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    background: #111;
+    border-right: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #filter-bar {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #222;
+    flex-shrink: 0;
+  }
+  #filter-bar p {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .filter-btn {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 3px 3px 3px 0;
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border: 1px solid #333;
+    border-radius: 2px;
+    cursor: pointer;
+    color: #aaa;
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: #666; color: #ddd; }
+  .filter-btn.active-branded  { background: #c9a96e; border-color: #c9a96e; color: #0f0f0f; }
+  .filter-btn.active-arch     { background: #5b8fa8; border-color: #5b8fa8; color: #fff; }
+  .filter-btn.active-landmark { background: #8a7b6b; border-color: #8a7b6b; color: #fff; }
+  .filter-btn.active-all      { background: #333; border-color: #555; color: #eee; }
+
+  #place-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #place-list::-webkit-scrollbar { width: 4px; }
+  #place-list::-webkit-scrollbar-track { background: #111; }
+  #place-list::-webkit-scrollbar-thumb { background: #333; }
+
+  .place-item {
+    padding: 11px 16px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .place-item:hover { background: #1a1a1a; }
+  .place-item.active { background: #1c1c1c; }
+  .place-item.cat-branded  { border-left-color: #c9a96e; }
+  .place-item.cat-arch     { border-left-color: #5b8fa8; }
+  .place-item.cat-landmark { border-left-color: #8a7b6b; }
+
+  .place-name {
+    font-size: 12px;
+    color: #ddd;
+    margin-bottom: 3px;
+    line-height: 1.4;
+  }
+  .place-sub {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── MAP ── */
+  #map-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #map {
+    flex: 1;
+  }
+
+  /* ── INFO PANEL ── */
+  #info-panel {
+    background: #111;
+    border-top: 1px solid #222;
+    padding: 16px 20px;
+    flex-shrink: 0;
+    min-height: 100px;
+    max-height: 180px;
+    transition: all 0.2s;
+  }
+  #info-panel.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #info-panel.empty p {
+    font-size: 11px;
+    color: #3a3a3a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  #info-title {
+    font-size: 15px;
+    color: #c9a96e;
+    margin-bottom: 4px;
+  }
+  #info-category {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  #info-desc {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.7;
+    max-width: 700px;
+  }
+  #info-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #c9a96e;
+    text-decoration: none;
+    border-bottom: 1px solid #c9a96e44;
+    padding-bottom: 1px;
+    transition: border-color 0.15s;
+  }
+  #info-link:hover { border-color: #c9a96e; }
+
+  /* ── LEGEND ── */
+  #legend {
+    position: absolute;
+    bottom: 100px;
+    right: 16px;
+    background: rgba(15,15,15,0.92);
+    border: 1px solid #2a2a2a;
+    padding: 12px 14px;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #888;
+  }
+  .legend-item:last-child { margin-bottom: 0; }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── LEAFLET OVERRIDES ── */
+  .leaflet-popup-content-wrapper {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 2px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    color: #ddd;
+  }
+  .leaflet-popup-tip { background: #1a1a1a; }
+  .leaflet-popup-content { margin: 10px 14px; font-size: 12px; }
+  .leaflet-control-zoom a {
+    background: #1a1a1a !important;
+    color: #888 !important;
+    border: 1px solid #333 !important;
+  }
+  .leaflet-control-zoom a:hover { color: #ddd !important; }
+  .leaflet-control-attribution { display: none; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div>
+    <h1>Branded Residences &amp; Architectural Homes</h1>
+    <p>Los Angeles &mdash; debbiepisaro.com</p>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="filter-bar">
+      <p>Filter by category</p>
+      <button class="filter-btn active-all" onclick="filterPlaces('all')">All</button>
+      <button class="filter-btn" onclick="filterPlaces('branded')">Branded Residences</button>
+      <button class="filter-btn" onclick="filterPlaces('arch')">Architectural Homes</button>
+      <button class="filter-btn" onclick="filterPlaces('landmark')">Landmarks</button>
+    </div>
+    <div id="place-list"></div>
+  </div>
+
+  <!-- MAP + INFO -->
+  <div id="map-wrap">
+    <div id="map"></div>
+
+    <!-- LEGEND -->
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c9a96e"></div> Branded Residences</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#5b8fa8"></div> Architectural Homes</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8a7b6b"></div> Landmarks</div>
+    </div>
+
+    <!-- INFO PANEL -->
+    <div id="info-panel" class="empty">
+      <p>Select a location to learn more</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const places = [
+
+  // ── BRANDED RESIDENCES ──
+  {
+    id: 'aman-bh',
+    name: 'Aman Beverly Hills Residences',
+    category: 'branded',
+    categoryLabel: 'Branded Residence',
+    lat: 34.0674,
+    lng: -118.4016,
+    address: '9527 Wilshire Blvd, Beverly Hills',
+    desc: 'Aman's first standalone residential project in the Western United States. Ultra-private residences with the full Aman hospitality experience, in the heart of the Golden Triangle. One of the most sought-after addresses in California.',
+    link: 'https://www.debbiepisaro.com/blog/aman-beverly-hills-residences',
+    linkText: 'Read the full post →'
+  },
+  {
+    id: 'one-bh',
+    name: 'One Beverly Hills (Aman West Coast)',
+    category: 'branded',
+    categoryLabel: 'Branded Residence',
+    lat: 34.0642,
+    lng: -118.4175,
+    address: '9900 Wilshire Blvd, Beverly Hills',
+    desc: 'Aman's West Coast flagship development on the site of the former Robinsons-May. Two residential towers designed by Gensler, with an Aman hotel, botanical gardens, and private member amenities. The most anticipated branded residence project in California.',
+    link: 'https://www.debbiepisaro.com/blog/one-beverly-hills',
+    linkText: 'Read the full post →'
+  },
+  {
+    id: 'sun-rose',
+    name: 'Sun Rose Residences (formerly Pendry)',
+    category: 'branded',
+    categoryLabel: 'Branded Residence',
+    lat: 34.0949,
+    lng: -118.3730,
+    address: '8420 Sunset Blvd, West Hollywood',
+    desc: 'Rebranded from Pendry Residences West Hollywood following Monarch Alternative Capital's acquisition. 40 residences on the Sunset Strip with hotel amenities, rooftop pool, and unobstructed views. 12 of 40 units remaining. Priced from $4.3M–$8M.',
+    link: 'https://www.debbiepisaro.com/blog/sun-rose-residences-pendry-rebrand',
+    linkText: 'Read the full post →'
+  },
+  {
+    id: '8899-bev',
+    name: '8899 Beverly — Olson Kundig',
+    category: 'branded',
+    categoryLabel: 'Branded Residence',
+    lat: 34.0773,
+    lng: -118.3858,
+    address: '8899 Beverly Blvd, West Hollywood',
+    desc: 'Tom Kundig's adaptive reuse of the iconic Pacific Design Center–adjacent building. 40 residences and 8 single-family homes, preserved industrial bones, raw materiality, and extraordinary scale. Priced from $5.75M–$27.5M. Architecture as identity.',
+    link: null,
+    linkText: null
+  },
+  {
+    id: 'rosewood',
+    name: 'Rosewood Residences Beverly Hills',
+    category: 'branded',
+    categoryLabel: 'Branded Residence',
+    lat: 34.0655,
+    lng: -118.4120,
+    address: '9900 S Santa Monica Blvd, Beverly Hills',
+    desc: 'Rosewood's first standalone residential building in North America. Ultra-luxury service, private porte-cochère, and the full Rosewood lifestyle — steps from the Beverly Wilshire and Rodeo Drive. One of the rarest addresses in Beverly Hills.',
+    link: null,
+    linkText: null
+  },
+  {
+    id: 'prive',
+    name: 'Privé Malibu',
+    category: 'branded',
+    categoryLabel: 'Branded Residence',
+    lat: 34.0242,
+    lng: -118.8039,
+    address: '6487 Cavalleri Rd, Malibu',
+    desc: 'Clifftop branded residences in the Santa Monica Mountains above PCH — ocean views, canyon privacy, and a level of finish rarely seen in Malibu. Debbie was among the first through at prelaunch, giving her primary-source authority no competing agent has.',
+    link: 'https://www.debbiepisaro.com/blog/prive-malibu',
+    linkText: 'Read the full post →'
+  },
+
+  // ── ARCHITECTURAL HOMES — STUDIO CITY ──
+  {
+    id: 'hackett',
+    name: 'James de Long Hackett House',
+    category: 'arch',
+    categoryLabel: 'Architectural Home — Studio City',
+    lat: 34.1492,
+    lng: -118.3801,
+    address: 'Studio City, CA',
+    desc: 'A significant mid-century modern residence in Studio City, thoughtfully preserved. Part of Debbie's ongoing series profiling the architectural homes that define the neighborhood's design legacy.',
+    link: 'https://www.debbiepisaro.com/architectural-homes/james-de-long-hackett-house-studio-city',
+    linkText: 'Read the full post →'
+  },
+  {
+    id: 'ain',
+    name: 'Gregory Ain Studio City Home',
+    category: 'arch',
+    categoryLabel: 'Architectural Home — Studio City',
+    lat: 34.1465,
+    lng: -118.3915,
+    address: 'Studio City, CA',
+    desc: 'A rare Gregory Ain residence in Studio City. Ain was one of the most socially conscious architects of the California modernist movement — his homes balance precise design with livability. A quiet landmark hiding in plain sight.',
+    link: 'https://www.debbiepisaro.com/architectural-homes/gregory-ain-studio-city-home',
+    linkText: 'Read the full post →'
+  },
+  {
+    id: 'case-study',
+    name: 'USC Case Study Home — Studio City (1961)',
+    category: 'arch',
+    categoryLabel: 'Architectural Home — Studio City',
+    lat: 34.1510,
+    lng: -118.3855,
+    address: 'Studio City, CA',
+    desc: 'One of the lesser-known Case Study properties, designed under the USC program in 1961. Steel frame, open plan, glass walls — the West Coast idea of how modern life should feel. A remarkable survivor.',
+    link: 'https://www.debbiepisaro.com/architectural-homes/usc-case-study-home-studio-city-1961',
+    linkText: 'Read the full post →'
+  },
+
+  // ── ARCHITECTURAL LANDMARKS ──
+  {
+    id: 'lovell',
+    name: 'Lovell Health House — Neutra (1929)',
+    category: 'landmark',
+    categoryLabel: 'Architectural Landmark',
+    lat: 34.1182,
+    lng: -118.2878,
+    address: '4616 Dundee Dr, Los Feliz',
+    desc: 'Richard Neutra's steel-frame masterpiece — the first steel-frame residential structure in the United States. Built in 1929 for Dr. Philip Lovell, this Los Feliz landmark launched California modernism and still reads as breathtakingly contemporary.',
+    link: 'https://www.losfelizliving.com/blog/lovell-health-house-los-feliz',
+    linkText: 'Read the full post →'
+  },
+  {
+    id: 'schindler',
+    name: 'Schindler House — MAK Center (1922)',
+    category: 'landmark',
+    categoryLabel: 'Architectural Landmark',
+    lat: 34.0865,
+    lng: -118.3723,
+    address: '835 Kings Rd, West Hollywood',
+    desc: 'R.M. Schindler built this West Hollywood home for himself in 1922 — and in doing so invented the California indoor/outdoor prototype. Now a museum and cultural center, it remains one of the most influential residential buildings ever constructed.',
+    link: null,
+    linkText: null
+  },
+  {
+    id: 'stahl',
+    name: 'Stahl House — Case Study #22 (1960)',
+    category: 'landmark',
+    categoryLabel: 'Architectural Landmark',
+    lat: 34.1005,
+    lng: -118.3703,
+    address: '1635 Woods Dr, Los Angeles',
+    desc: 'Pierre Koenig's glass-and-steel pavilion suspended above the city — the most photographed house in Los Angeles, and arguably the defining image of California modernism. Julius Shulman's 1960 photograph remains one of the most iconic architectural images ever taken.',
+    link: null,
+    linkText: null
+  },
+  {
+    id: 'eames',
+    name: 'Eames House — Case Study #8 (1949)',
+    category: 'landmark',
+    categoryLabel: 'Architectural Landmark',
+    lat: 34.0298,
+    lng: -118.5194,
+    address: '203 Chautauqua Blvd, Pacific Palisades',
+    desc: 'Charles and Ray Eames built this Pacific Palisades home from off-the-shelf industrial components and turned it into one of the most beloved houses in the world. Case Study House #8 sits on a 1.5-acre meadow above the Pacific. The soul of California mid-century.',
+    link: null,
+    linkText: null
+  },
+
+];
+
+// ─────────────────────────────────────────────
+// COLORS
+// ─────────────────────────────────────────────
+const CAT_COLORS = {
+  branded:  '#c9a96e',
+  arch:     '#5b8fa8',
+  landmark: '#8a7b6b',
+};
+
+function makeIcon(cat, active) {
+  const color = CAT_COLORS[cat];
+  const size   = active ? 18 : 13;
+  const border = active ? 3 : 2;
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:${size}px;height:${size}px;
+      border-radius:50%;
+      background:${color};
+      border:${border}px solid ${active ? '#fff' : color+'88'};
+      box-shadow:0 0 ${active?10:6}px ${color}88;
+      transition:all 0.2s;
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+  });
+}
+
+// ─────────────────────────────────────────────
+// MAP INIT
+// ─────────────────────────────────────────────
+const map = L.map('map', {
+  center: [34.07, -118.42],
+  zoom: 11,
+  zoomControl: true,
+  scrollWheelZoom: true,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let activeFilter = 'all';
+let activeId     = null;
+const markers    = {};
+
+// ─────────────────────────────────────────────
+// BUILD MARKERS
+// ─────────────────────────────────────────────
+places.forEach(p => {
+  const marker = L.marker([p.lat, p.lng], { icon: makeIcon(p.category, false) }).addTo(map);
+  marker.on('click', () => selectPlace(p.id));
+  markers[p.id] = marker;
+});
+
+// ─────────────────────────────────────────────
+// BUILD SIDEBAR LIST
+// ─────────────────────────────────────────────
+function buildList(filter) {
+  const container = document.getElementById('place-list');
+  container.innerHTML = '';
+  const filtered = filter === 'all' ? places : places.filter(p => p.category === filter);
+  filtered.forEach(p => {
+    const div = document.createElement('div');
+    div.className = `place-item cat-${p.category}${activeId === p.id ? ' active' : ''}`;
+    div.id = `item-${p.id}`;
+    div.innerHTML = `
+      <div class="place-name">${p.name}</div>
+      <div class="place-sub">${p.categoryLabel}</div>
+    `;
+    div.addEventListener('click', () => selectPlace(p.id));
+    container.appendChild(div);
+  });
+}
+
+// ─────────────────────────────────────────────
+// SELECT PLACE
+// ─────────────────────────────────────────────
+function selectPlace(id) {
+  // reset previous active marker
+  if (activeId && markers[activeId]) {
+    const prev = places.find(p => p.id === activeId);
+    if (prev) markers[activeId].setIcon(makeIcon(prev.category, false));
+    const prevItem = document.getElementById(`item-${activeId}`);
+    if (prevItem) prevItem.classList.remove('active');
+  }
+
+  activeId = id;
+  const p = places.find(x => x.id === id);
+  if (!p) return;
+
+  // update marker
+  markers[id].setIcon(makeIcon(p.category, true));
+  map.panTo([p.lat, p.lng], { animate: true, duration: 0.4 });
+
+  // update sidebar
+  const item = document.getElementById(`item-${id}`);
+  if (item) {
+    item.classList.add('active');
+    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  // update info panel
+  const panel = document.getElementById('info-panel');
+  panel.classList.remove('empty');
+  panel.innerHTML = `
+    <div id="info-title">${p.name}</div>
+    <div id="info-category">${p.categoryLabel}${p.address ? ' &nbsp;·&nbsp; ' + p.address : ''}</div>
+    <div id="info-desc">${p.desc}</div>
+    ${p.link ? `<a id="info-link" href="${p.link}" target="_blank" rel="noopener">${p.linkText}</a>` : ''}
+  `;
+}
+
+// ─────────────────────────────────────────────
+// FILTER
+// ─────────────────────────────────────────────
+function filterPlaces(cat) {
+  activeFilter = cat;
+
+  // update button states
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.className = 'filter-btn';
+  });
+  const clicked = event.target;
+  if      (cat === 'all')      clicked.classList.add('active-all');
+  else if (cat === 'branded')  clicked.classList.add('active-branded');
+  else if (cat === 'arch')     clicked.classList.add('active-arch');
+  else if (cat === 'landmark') clicked.classList.add('active-landmark');
+
+  // show/hide markers
+  places.forEach(p => {
+    const m = markers[p.id];
+    if (cat === 'all' || p.category === cat) {
+      if (!map.hasLayer(m)) map.addLayer(m);
+    } else {
+      if (map.hasLayer(m)) map.removeLayer(m);
+    }
+  });
+
+  // rebuild list
+  buildList(cat);
+
+  // reset selection if active item is now hidden
+  if (activeId) {
+    const ap = places.find(x => x.id === activeId);
+    if (ap && cat !== 'all' && ap.category !== cat) {
+      activeId = null;
+      const panel = document.getElementById('info-panel');
+      panel.className = 'empty';
+      panel.innerHTML = '<p>Select a location to learn more</p>';
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+buildList('all');
+</script>
+</body>
+</html>
