@@ -13,19 +13,11 @@
     :root {
       --schindler: #B84A2E; --neutra: #2E6E4A; --lautner: #5C3A8E; --other: #4A6670;
       --cream: #F9F6F1; --white: #FFFFFF; --ink: #1C1C1C; --muted: #6B6860;
-      --border: #E2DDD7; --header-bg: #1A1A1A; --hh: 56px; --sw: 420px;
+      --border: #E2DDD7; --sw: 420px;
       --serif: 'Playfair Display', Georgia, serif; --sans: 'DM Sans', system-ui, sans-serif;
     }
     html, body { height: 100%; overflow: hidden; background: var(--cream); }
     #app { display: flex; flex-direction: column; height: 100vh; }
-
-    /* HEADER */
-    #header { height: var(--hh); background: var(--header-bg); display: flex; align-items: center;
-      justify-content: space-between; padding: 0 20px; flex-shrink: 0; z-index: 1000; }
-    #hl { display: flex; align-items: baseline; gap: 10px; }
-    #header h1 { font-family: var(--serif); font-size: 17px; font-weight: 400; color: #F9F6F1; letter-spacing: .02em; }
-    #hsub { font-family: var(--sans); font-size: 11px; font-weight: 300; color: #888; letter-spacing: .05em; text-transform: uppercase; }
-    #hcount { font-family: var(--sans); font-size: 12px; color: #888; font-weight: 300; }
 
     /* BODY */
     #body { display: flex; flex: 1; overflow: hidden; }
@@ -135,11 +127,6 @@
 </head>
 <body>
 <div id="app">
-  <div id="header">
-    <div id="hl">
-      <h1>Studio City Architectural Homes</h1>
-      <span id="hsub">debbiepisaro.com</span>
-    </div>
     <span id="hcount">Loading…</span>
   </div>
   <div id="body">
