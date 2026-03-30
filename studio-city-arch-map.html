@@ -63,7 +63,7 @@
       letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-top: 6px; }
 
     /* MAP */
-    #map { flex: 1; position: relative; }
+    #map { flex: 1; position: relative; min-height: 600px; }
     .leaflet-container { font-family: var(--sans) !important; }
     .leaflet-popup-content-wrapper { border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
       padding: 0 !important; overflow: hidden; border: 1px solid var(--border); }
@@ -256,7 +256,7 @@ const CL = { schindler:'Schindler', neutra:'Neutra', lautner:'Lautner', other:'O
 const CACHE = 'dp_sc_v7';
 
 // Map
-const map = L.map('map', { center:[34.136, -118.378], zoom:15, zoomControl:false });
+const map = L.map('map', { center:[34.136, -118.390], zoom:15, zoomControl:false });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
 }).addTo(map);
@@ -361,8 +361,14 @@ function init() {
 
 init();
 // Force Leaflet to recalculate size after iframe renders
-setTimeout(function() { map.invalidateSize(); }, 500);
-setTimeout(function() { map.invalidateSize(); }, 1500);
+window.addEventListener('load', function() {
+  map.invalidateSize();
+  setTimeout(function() { map.invalidateSize(); }, 200);
+  setTimeout(function() { map.invalidateSize(); }, 800);
+  setTimeout(function() { map.invalidateSize(); }, 2000);
+});
+setTimeout(function() { map.invalidateSize(); }, 300);
+setTimeout(function() { map.invalidateSize(); }, 1000);
 </script>
 </body>
 </html>
