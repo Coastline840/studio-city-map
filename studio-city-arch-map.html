@@ -17,10 +17,10 @@
       --serif: 'Playfair Display', Georgia, serif; --sans: 'DM Sans', system-ui, sans-serif;
     }
     
-    #app { display: flex; flex-direction: column; height: 800px; overflow: hidden; }
+    #app { display: flex; flex-direction: column; height: 800px; overflow: hidden; box-sizing: border-box; }
 
     /* BODY */
-    #body { display: flex; flex: 1; overflow: hidden; }
+    #body { display: flex; flex: 1; overflow: hidden; height: 800px; }
 
     /* SIDEBAR */
     #sidebar { width: var(--sw); background: var(--white); display: flex; flex-direction: column;
@@ -63,7 +63,7 @@
       letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-top: 6px; }
 
     /* MAP */
-    #map { flex: 1; position: relative; min-height: 600px; }
+    #map { flex: 1; position: relative; height: 800px; }
     .leaflet-container { font-family: var(--sans) !important; }
     .leaflet-popup-content-wrapper { border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
       padding: 0 !important; overflow: hidden; border: 1px solid var(--border); }
@@ -127,8 +127,6 @@
 </head>
 <body>
 <div id="app">
-    <span id="hcount">Loading…</span>
-  </div>
   <div id="body">
     <div id="sidebar">
       <div id="stories">
@@ -314,7 +312,7 @@ document.querySelectorAll('.fb').forEach(btn => btn.addEventListener('click', ()
     if (show) { if (!map.hasLayer(markers[h.id].marker)) map.addLayer(markers[h.id].marker); if(card) card.style.display=''; n++; }
     else { if (map.hasLayer(markers[h.id].marker)) map.removeLayer(markers[h.id].marker); if(card) card.style.display='none'; }
   });
-  document.getElementById('hcount').textContent = n+' home'+(n!==1?'s':'');
+  // hcount removed
 }));
 
 function addPin(h) {
@@ -356,19 +354,21 @@ function init() {
   });
 
   document.getElementById('loading').style.display='none';
-  document.getElementById('hcount').textContent = HOMES.length+' homes';
+  // hcount removed
 }
 
 init();
 // Force Leaflet to recalculate size after iframe renders
-window.addEventListener('load', function() {
+function fixMap() {
   map.invalidateSize();
-  setTimeout(function() { map.invalidateSize(); }, 200);
-  setTimeout(function() { map.invalidateSize(); }, 800);
-  setTimeout(function() { map.invalidateSize(); }, 2000);
+  map.setView([34.136, -118.390], 15);
+}
+window.addEventListener('load', function() {
+  fixMap();
+  setTimeout(fixMap, 300);
+  setTimeout(fixMap, 1000);
+  setTimeout(fixMap, 2500);
 });
-setTimeout(function() { map.invalidateSize(); }, 300);
-setTimeout(function() { map.invalidateSize(); }, 1000);
 </script>
 </body>
 </html>
