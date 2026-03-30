@@ -16,8 +16,8 @@
       --border: #E2DDD7; --sw: 420px;
       --serif: 'Playfair Display', Georgia, serif; --sans: 'DM Sans', system-ui, sans-serif;
     }
-    html, body { height: 100%; overflow: hidden; background: var(--cream); }
-    #app { display: flex; flex-direction: column; height: 100vh; }
+    
+    #app { display: flex; flex-direction: column; height: 800px; overflow: hidden; }
 
     /* BODY */
     #body { display: flex; flex: 1; overflow: hidden; }
@@ -360,6 +360,9 @@ function init() {
 }
 
 init();
+// Force Leaflet to recalculate size after iframe renders
+setTimeout(function() { map.invalidateSize(); }, 500);
+setTimeout(function() { map.invalidateSize(); }, 1500);
 </script>
 </body>
 </html>
