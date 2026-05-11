@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Studio City Architectural Homes | Debbie Pisaro</title>
+  <title>Studio City Architectural Homes Map | Debbie Pisaro</title>
+  <meta name="description" content="Interactive map of architecturally significant homes in Studio City, California — Schindler, Neutra, Lautner, Ain, Soriano, Cliff May, and more — curated by real estate agent Debbie Pisaro.">
+  <link rel="canonical" href="https://www.debbiepisaro.com/studio-city-architectural-homes-map">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,10 +15,12 @@
     :root {
       --schindler: #B84A2E; --neutra: #2E6E4A; --lautner: #5C3A8E; --other: #4A6670;
       --cream: #F9F6F1; --white: #FFFFFF; --ink: #1C1C1C; --muted: #6B6860;
-      --border: #E2DDD7; --sw: 420px;
+      --border: #E2DDD7; --focus: #1A1A1A; --sw: 420px;
       --serif: 'Playfair Display', Georgia, serif; --sans: 'DM Sans', system-ui, sans-serif;
     }
-    
+    /* Universal focus ring */
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+
     #app { display: flex; flex-direction: column; height: 800px; overflow: hidden; box-sizing: border-box; }
 
     /* BODY */
@@ -25,6 +29,17 @@
     /* SIDEBAR */
     #sidebar { width: var(--sw); background: var(--white); display: flex; flex-direction: column;
       border-right: 1px solid var(--border); flex-shrink: 0; z-index: 500; }
+
+    /* STORIES */
+    #stories { padding: 14px 18px 13px; border-bottom: 1px solid var(--border); background: var(--white); }
+    #stories-label { font-family: var(--serif); font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: .01em; margin-bottom: 9px; }
+    .slink { display: flex; align-items: baseline; gap: 5px; font-family: var(--sans); font-size: 13px;
+      color: var(--schindler); text-decoration: none; font-weight: 500; line-height: 1.5; margin-bottom: 6px; transition: opacity .15s; }
+    .slink:last-child { margin-bottom: 0; }
+    .slink:hover { opacity: .65; }
+    .slink::before { content: '→'; font-size: 11px; flex-shrink: 0; }
+
+    /* FILTERS */
     #filters { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); background: var(--cream); }
     #fl { font-family: var(--sans); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 8px; font-weight: 500; }
@@ -44,15 +59,15 @@
     .fb:not(.on) { opacity: .38; }
     .fb:hover { opacity: 1; }
 
+    /* CARDS */
     #cards { overflow-y: auto; flex: 1; padding: 10px 12px 16px;
       scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
     #cards::-webkit-scrollbar { width: 4px; }
     #cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
     .card { padding: 12px 12px 10px; border-radius: 6px; border: 1px solid var(--border);
       margin-bottom: 8px; cursor: pointer; transition: all .15s; background: var(--white); position: relative; }
     .card:hover { border-color: #C0BAB2; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
-    .card.sel { border-color: #1A1A1A; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+    .card.sel { border-color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.12); }
     .ca { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 6px 0 0 6px; }
     .ci { padding-left: 10px; }
     .ct { font-family: var(--serif); font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.3; margin-bottom: 3px; }
@@ -61,6 +76,8 @@
     .cadr { font-family: var(--sans); font-size: 12.5px; color: #AAA5A0; margin-top: 3px; font-weight: 300; }
     .ctag { display: inline-block; font-family: var(--sans); font-size: 11px; font-weight: 500;
       letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-top: 6px; }
+    .clink { display: inline-block; margin-left: 8px; font-size: 11px; color: var(--muted); text-decoration: none; font-family: var(--sans); }
+    .clink:hover { color: var(--schindler); text-decoration: underline; }
 
     /* MAP */
     #map { flex: 1; position: relative; height: 800px; }
@@ -91,84 +108,81 @@
     .lr:last-child { margin-bottom: 0; }
     .lpin { width: 14px; height: 18px; flex-shrink: 0; }
 
-    /* LOADING */
-    #loading { position: absolute; inset: 0; background: rgba(249,246,241,.93);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 2000; gap: 14px; }
-    #ltxt { font-family: var(--serif); font-size: 18px; color: var(--ink); }
-    #ltrack { width: 220px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
-    #lbar { height: 100%; background: var(--schindler); border-radius: 2px; width: 0%; transition: width .3s ease; }
-    #lsub { font-family: var(--sans); font-size: 12px; color: var(--muted); text-align: center; max-width: 270px; }
-    #lnote { font-family: var(--sans); font-size: 11px; color: #aaa; text-align: center; max-width: 270px; }
-
     #brand { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 999;
       font-family: var(--sans); font-size: 11px; color: #999; pointer-events: none; white-space: nowrap; }
     #brand a { color: #888; text-decoration: none; pointer-events: auto; }
 
-    /* STORIES */
-    #stories { padding: 14px 18px 13px; border-bottom: 1px solid var(--border); background: var(--white); }
-    #stories-label { font-family: var(--serif); font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: .01em; margin-bottom: 9px; }
-    .slink { display: flex; align-items: baseline; gap: 5px; font-family: var(--sans); font-size: 13px;
-      color: var(--schindler); text-decoration: none; font-weight: 500; line-height: 1.5; margin-bottom: 6px; transition: opacity .15s; }
-    .slink:last-child { margin-bottom: 0; }
-    .slink:hover { opacity: .65; }
-    .slink::before { content: '→'; font-size: 11px; flex-shrink: 0; }
+    /* Visually-hidden helper for screen-reader-only headings */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
     @media (max-width: 680px) {
       #body { flex-direction: column; }
       #sidebar { width: 100%; height: 260px; border-right: none; border-top: 1px solid var(--border); order: 2; }
       #map { order: 1; min-height: 340px; }
       #brand { display: none; }
-      #legend { bottom: 12px; right: 10px; }
-      :root { --hh: 48px; }
-      #header h1 { font-size: 15px; }
+      #legend { bottom: 12px; right: 10px; padding: 10px 12px; }
     }
   </style>
 </head>
 <body>
+<h1 class="sr-only">Studio City Architectural Homes Map</h1>
 <div id="app">
   <div id="body">
-    <div id="sidebar">
+    <aside id="sidebar" aria-label="Architectural homes list and filters">
       <div id="stories">
         <div id="stories-label">Stories from the Map</div>
-        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/james-de-long-hackett-house-studio-city" target="_blank">The Hackett House: A Wright Legacy in Studio City</a>
-        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/gregory-ain-studio-city-home" target="_blank">Gregory Ain's Tufeld Residence</a>
-        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/usc-case-study-home-studio-city-1961" target="_blank">The USC Case Study Houses on Laurelcrest</a>
-        <a class="slink" href="https://www.debbiepisaro.com/blog/sportsmens-lodge-studio-city-history" target="_blank">Sportsmen's Lodge: The Dirt Road and the Trout</a>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/roxy-roth-house-schindler-studio-city" target="_blank" rel="noopener">The Roxy Roth House: R.M. Schindler in Studio City</a>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/james-de-long-hackett-house-studio-city" target="_blank" rel="noopener">The Hackett House: A Wright Legacy in Studio City</a>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/gregory-ain-studio-city-home" target="_blank" rel="noopener">Gregory Ain's Tufeld Residence</a>
+        <a class="slink" href="https://www.debbiepisaro.com/architectural-homes/usc-case-study-home-studio-city-1961" target="_blank" rel="noopener">The USC Case Study Houses on Laurelcrest</a>
+        <a class="slink" href="https://www.debbiepisaro.com/blog/sportsmens-lodge-studio-city-history" target="_blank" rel="noopener">Sportsmen's Lodge: The Dirt Road and the Trout</a>
       </div>
-      <div id="filters">
+      <div id="filters" role="group" aria-label="Filter homes by architect">
         <div id="fl">Filter by Architect</div>
         <div id="fbtns">
-          <button class="fb on" data-cat="schindler"><span class="dot" style="background:var(--schindler)"></span>Schindler</button>
-          <button class="fb on" data-cat="neutra"><span class="dot" style="background:var(--neutra)"></span>Neutra</button>
-          <button class="fb on" data-cat="lautner"><span class="dot" style="background:var(--lautner)"></span>Lautner</button>
-          <button class="fb on" data-cat="other"><span class="dot" style="background:var(--other)"></span>Other</button>
+          <button class="fb on" data-cat="schindler" aria-pressed="true"><span class="dot" style="background:var(--schindler)" aria-hidden="true"></span>Schindler</button>
+          <button class="fb on" data-cat="neutra"    aria-pressed="true"><span class="dot" style="background:var(--neutra)" aria-hidden="true"></span>Neutra</button>
+          <button class="fb on" data-cat="lautner"   aria-pressed="true"><span class="dot" style="background:var(--lautner)" aria-hidden="true"></span>Lautner</button>
+          <button class="fb on" data-cat="other"     aria-pressed="true"><span class="dot" style="background:var(--other)" aria-hidden="true"></span>Other</button>
         </div>
       </div>
-      <div id="cards"></div>
-    </div>
-
-    <div id="map">
-      <div id="loading">
-        <div id="ltxt">Locating Homes…</div>
-        <div id="ltrack"><div id="lbar"></div></div>
-        <div id="lsub">Geocoding addresses via OpenStreetMap</div>
-        <div id="lnote">First load takes ~30 seconds · Results are cached after that</div>
-      </div>
-
-      <div id="legend">
+      <div id="cards" role="list" aria-label="Architectural homes"></div>
+    </aside>
+    <div id="map" role="application" aria-label="Interactive map of Studio City architectural homes">
+      <div id="legend" aria-hidden="true">
         <div id="ltitle">Map Key</div>
-        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--schindler)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>R.M. Schindler</div>
-        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--neutra)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>Richard Neutra</div>
-        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--lautner)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>John Lautner</div>
-        <div class="lr"><svg class="lpin" viewBox="0 0 14 18"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--other)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>Other Architects</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18" aria-hidden="true"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--schindler)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>R.M. Schindler</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18" aria-hidden="true"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--neutra)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>Richard Neutra</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18" aria-hidden="true"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--lautner)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>John Lautner</div>
+        <div class="lr"><svg class="lpin" viewBox="0 0 14 18" aria-hidden="true"><path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11C14 3.13 10.87 0 7 0z" fill="var(--other)"/><circle cx="7" cy="7" r="3" fill="rgba(255,255,255,0.5)"/></svg>Other Architects</div>
       </div>
-      <div id="brand"><a href="https://debbiepisaro.com" target="_blank">debbiepisaro.com</a> · Studio City Architectural Homes</div>
+      <div id="brand"><a href="https://debbiepisaro.com" target="_blank" rel="noopener">debbiepisaro.com</a> · Studio City Architectural Homes</div>
     </div>
   </div>
 </div>
 
 <script>
+/* =============================================================
+   STUDIO CITY ARCHITECTURAL HOMES MAP
+   Single source of truth: HOMES + COORDS
+   ============================================================= */
+
+// Pre-geocoded coordinates (lat, lng). Edit here when adding homes.
+const COORDS = {
+  1:  [34.1483,  -118.3957],   2:  [34.1328,  -118.3838],   3:  [34.1358,  -118.3808],
+  4:  [34.1520,  -118.3890],   5:  [34.1362,  -118.3842],   6:  [34.1355,  -118.3846],
+  7:  [34.1440,  -118.4040],   8:  [34.1348,  -118.3854],   9:  [34.1344,  -118.3857],
+  10: [34.1455,  -118.3975],  11: [34.1452,  -118.4082],  12: [34.1352,  -118.3851],
+  13: [34.1372,  -118.3885],  14: [34.1378,  -118.3848],  15: [34.1332,  -118.3842],
+  16: [34.1362,  -118.4062],  17: [34.1490,  -118.3957],  18: [34.1368,  -118.3812],
+  19: [34.1413,  -118.3965],  20: [34.1512,  -118.3972],  21: [34.1462,  -118.4038],
+  22: [34.1484,  -118.3968],  23: [34.1330,  -118.3882],  24: [34.1370,  -118.4015],
+  25: [34.12768, -118.38443], 26: [34.1432,  -118.4025],  27: [34.1338,  -118.3942],
+  28: [34.1388,  -118.4072],  29: [34.1318,  -118.3922],  30: [34.1435,  -118.4028],
+  31: [34.1372,  -118.4058],  32: [34.1428,  -118.4022]
+};
+
 const HOMES = [
   { id:1,  name:"Presburger House",                 addr:"4255 Agnes Ave, Studio City, CA 91604",          year:1945, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
     desc:"A hallmark of Schindler's modernist vision — clean lines and deep integration with its natural surroundings. A key stop on any architectural tour of Studio City." },
@@ -186,8 +200,13 @@ const HOMES = [
     desc:"Celebrated for its blend of functionality and avant-garde design. Walls of glass open interiors to park-like grounds. Meticulously restored by Studio Shamshiri." },
   { id:8,  name:"Waxman House",                     addr:"3644 Buena Park Dr, Studio City, CA 91604",      year:1964, by:"J. Barry Moffitt",             cat:"other",     hcm:null,
     desc:"Mid-century elegance on Buena Park Drive — a canyon street with an unusually high concentration of design-forward homes." },
-  { id:9,  name:"Roth House",                       addr:"3624 Buena Park Dr, Studio City, CA 91604",      year:1945, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
-    desc:"A sought-after Schindler landmark that exemplifies his unique spatial intelligence. Rare to come to market — and when it does, it moves fast." },
+
+  // === ROXY ROTH HOUSE — updated entry ===
+  // Was previously listed as "Roth House" / 1945. Corrected per Debbie's article.
+  { id:9,  name:"Roxy Roth House",                  addr:"3624 Buena Park Dr, Studio City, CA 91604",      year:1946, by:"Rudolph Schindler",            cat:"schindler", hcm:null,
+    link:"https://www.debbiepisaro.com/architectural-homes/roxy-roth-house-schindler-studio-city",
+    desc:"One of the most intact Schindler residences in Los Angeles — only four owners since 1946, every one a creative. Original built-ins, sloping timber slat ceilings, and a massive picture window framing the San Fernando Valley. A 400 sq ft writer's studio added by architect Barbara Bestor extends the house's creative legacy." },
+
   { id:10, name:"Chase Bank",                       addr:"12122 Ventura Blvd, Studio City, CA 91604",      year:1968, by:"Millard Sheets",               cat:"other",     hcm:null,
     desc:"A reminder that mid-century architecture didn't stop at the front door. Sheets' mosaic-clad commercial buildings were civic landmarks across California." },
   { id:11, name:"Ralph's Market",                   addr:"11865 Ventura Blvd, Studio City, CA 91604",      year:1972, by:"R. Leon Edgar",                cat:"other",     hcm:null,
@@ -218,42 +237,80 @@ const HOMES = [
     desc:"Features the distinctive post-war architectural style that swept through Studio City in the 1950s — clean geometry and an honest relationship with the hillside." },
   { id:24, name:"Autry Residence — Flying A Estate", addr:"3171 Brookdale Rd, Studio City, CA 91604",      year:1949, by:"Unknown",                      cat:"other",     hcm:null,
     desc:"Long-time home of Gene Autry, the 'Singing Cowboy.' Nearly 8,000 sq ft on 160,000 sq ft of land — old Hollywood charm at ranch scale." },
-  // El Paradiso: coordinates confirmed from LA Cultural Heritage marker #638
-  // 34°7.661′N = 34.127683°, 118°23.066′W = -118.384433°
-  { id:25, name:"El Paradiso (Grossman House)",     addr:"Studio City Hills, CA",
-    fixedLat:34.12768, fixedLng:-118.38443,
-    year:1964, by:"Raphael Soriano",               cat:"other",     hcm:"HCM #638",
+  { id:25, name:"El Paradiso (Grossman House)",     addr:"Studio City Hills, CA",                          year:1964, by:"Raphael Soriano",              cat:"other",     hcm:"HCM #638",
     desc:"Soriano's all-aluminum masterpiece — the first of its kind. Built with 28 sliding glass doors and prefabricated modular panels. Dubbed 'El Paradiso' for its space-age vision of Southern California living." },
-
-  { id:26, name:"Tufeld Residence",                 addr:"11020 Wrightwood Pl, Studio City, CA 91604",  year:1953, by:"Gregory Ain",                  cat:"other",     hcm:null,
+  { id:26, name:"Tufeld Residence",                 addr:"11020 Wrightwood Pl, Studio City, CA 91604",     year:1953, by:"Gregory Ain",                  cat:"other",     hcm:null,
     link:"https://www.debbiepisaro.com/architectural-homes/gregory-ain-studio-city-home",
     desc:"Designed for voice actor Richard Tufeld, Ain's social living plan integrates seamlessly with Garrett Eckbo's abstract garden landscape and iconic oval pool. First time on the market in 2014 after 60+ years in the family — Debbie had the listing." },
-
-  { id:27, name:"USC Case Study Cluster",            addr:"11534 Laurelcrest Dr, Studio City, CA 91604", year:1961, by:"Chapman & McCorkell",          cat:"other",     hcm:null,
+  { id:27, name:"USC Case Study Cluster",           addr:"11534 Laurelcrest Dr, Studio City, CA 91604",    year:1961, by:"Chapman & McCorkell",          cat:"other",     hcm:null,
     link:"https://www.debbiepisaro.com/architectural-homes/usc-case-study-home-studio-city-1961",
     desc:"Five post-and-beam mid-century homes tucked on a private cul-de-sac in the Studio City hills, built as a USC Case Study project. Jetliner views, wood-beamed ceilings, and walls of glass — an extraordinary architectural cluster largely unknown to the public." },
-
-  { id:28, name:"Dawson House",                      addr:"11681 Valleycrest Rd, Studio City, CA 91604", year:1952, by:"Cliff May",                    cat:"other",     hcm:null,
+  { id:28, name:"Dawson House",                     addr:"11681 Valleycrest Rd, Studio City, CA 91604",    year:1952, by:"Cliff May",                    cat:"other",     hcm:null,
     desc:"A rare custom Cliff May ranch in Fryman Canyon — the father of the California ranch house at his early-'50s best. Curved floor plan, open-beam ceilings, and nearly an acre of land. One of only a handful of confirmed May works in Studio City." },
-
-  { id:29, name:"Hackett House",                     addr:"3370 Canton Lane, Studio City, CA 91604",    year:1979, by:"James De Long",                cat:"other",     hcm:null,
+  { id:29, name:"Hackett House",                    addr:"3370 Canton Lane, Studio City, CA 91604",        year:1979, by:"James De Long",                cat:"other",     hcm:null,
+    link:"https://www.debbiepisaro.com/architectural-homes/james-de-long-hackett-house-studio-city",
     desc:"Designed in the 1960s and built in 1979 by James De Long — Frank Lloyd Wright Taliesin Fellow and architecture editor of House Beautiful. A faithful California interpretation of Wright's Usonian principles: wide cantilevered overhangs, fine wood detailing, step-down living room, and panoramic canyon views from the Santa Monica Mountains." },
-
-  { id:30, name:"Thies Residence",                   addr:"11051 Wrightwood Lane, Studio City, CA 91604", year:1958, by:"Carl Maston",                 cat:"other",     hcm:null,
+  { id:30, name:"Thies Residence",                  addr:"11051 Wrightwood Lane, Studio City, CA 91604",   year:1958, by:"Carl Maston",                  cat:"other",     hcm:null,
     desc:"An exemplary mid-century modern home from Carl Maston, USC graduate and FAIA. Folded plate ceilings, endless floor-to-ceiling glass, polished cement floors, and seamless indoor-outdoor flow — photographed by Julius Shulman. Maston's Thies Residence was later renovated by Glee creator Ryan Murphy." },
-
-  { id:31, name:"Mayos Residence",                   addr:"3255 Fryman Rd, Studio City, CA 91604",      year:1946, by:"Paul Laszlo",                  cat:"other",     hcm:null,
+  { id:31, name:"Mayos Residence",                  addr:"3255 Fryman Rd, Studio City, CA 91604",          year:1946, by:"Paul Laszlo",                  cat:"other",     hcm:null,
     desc:"In 1946 the Mayos commissioned Paul Laszlo to reimagine their Fryman Estates home. Laszlo — the Viennese-born designer to Old Hollywood royalty — transformed it into a shining example of modernism and luxury. On the market for only the second time ever when it last sold." },
-
-  { id:32, name:"Thomas Young Residence",            addr:"3268 Wrightwood Dr, Studio City, CA 91604",  year:1962, by:"William E. Mader",             cat:"other",     hcm:null,
+  { id:32, name:"Thomas Young Residence",           addr:"3268 Wrightwood Dr, Studio City, CA 91604",      year:1962, by:"William E. Mader",             cat:"other",     hcm:null,
     desc:"Designed by USC-trained William E. Mader — who went on to become principal architect for the Irvine Company — for comedian Thomas Young. Floor-to-ceiling glass, Mondrian-style frosted windows, and jetliner views from Universal City to the Santa Susanas. One of 14 homes in the Eureka Summit Residential Historic District within Wrightwood Estates." }
 ];
 
-const C = { schindler:'#B84A2E', neutra:'#2E6E4A', lautner:'#5C3A8E', other:'#4A6670' };
-const CL = { schindler:'Schindler', neutra:'Neutra', lautner:'Lautner', other:'Other' };
-const CACHE = 'dp_sc_v7';
+// Attach coordinates from COORDS map
+HOMES.forEach(h => { const c = COORDS[h.id]; if (c) { h.lat = c[0]; h.lng = c[1]; } });
 
-// Map
+const C  = { schindler:'#B84A2E', neutra:'#2E6E4A', lautner:'#5C3A8E', other:'#4A6670' };
+const CL = { schindler:'Schindler', neutra:'Neutra', lautner:'Lautner', other:'Other' };
+
+/* =============================================================
+   SEO / AEO — JSON-LD ItemList of Place / LandmarksOrHistoricalBuildings
+   Surfaces individual homes to Google AI Overview, Perplexity, ChatGPT
+   ============================================================= */
+(function injectJSONLD(){
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Studio City Architectural Homes",
+    "description": "Curated map of architecturally significant homes in Studio City, California, including works by R.M. Schindler, Richard Neutra, John Lautner, Gregory Ain, Raphael Soriano, Cliff May, and others.",
+    "url": "https://www.debbiepisaro.com/studio-city-architectural-homes-map",
+    "numberOfItems": HOMES.length,
+    "itemListElement": HOMES.map((h, i) => {
+      const item = {
+        "@type": ["Place", "LandmarksOrHistoricalBuildings"],
+        "name": h.name,
+        "description": h.desc,
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": h.addr.split(',')[0].trim(),
+          "addressLocality": "Studio City",
+          "addressRegion": "CA",
+          "postalCode": "91604",
+          "addressCountry": "US"
+        },
+        "additionalProperty": [
+          { "@type": "PropertyValue", "name": "Architect",  "value": h.by },
+          { "@type": "PropertyValue", "name": "Year Built", "value": String(h.year) }
+        ]
+      };
+      if (h.lat && h.lng) {
+        item.geo = { "@type": "GeoCoordinates", "latitude": h.lat, "longitude": h.lng };
+      }
+      if (h.link) item.url = h.link;
+      if (h.hcm)  item.additionalProperty.push({ "@type": "PropertyValue", "name": "Designation", "value": h.hcm });
+      return { "@type": "ListItem", "position": i + 1, "item": item };
+    })
+  };
+  const s = document.createElement('script');
+  s.type = 'application/ld+json';
+  s.textContent = JSON.stringify(ld);
+  document.head.appendChild(s);
+})();
+
+/* =============================================================
+   MAP
+   ============================================================= */
 const map = L.map('map', { center:[34.136, -118.390], zoom:15, zoomControl:false });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
@@ -263,7 +320,7 @@ L.control.zoom({ position:'topleft' }).addTo(map);
 function icon(cat) {
   const c = C[cat];
   return L.divIcon({
-    html:`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">
+    html:`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34" role="img" aria-label="${CL[cat]} pin">
       <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 21 13 21s13-11.25 13-21C26 5.82 20.18 0 13 0z"
         fill="${c}" filter="drop-shadow(0 1.5px 1.5px rgba(0,0,0,0.28))"/>
       <circle cx="13" cy="13" r="5.5" fill="rgba(255,255,255,0.45)"/></svg>`,
@@ -277,12 +334,13 @@ function popupHTML(h) {
     <div class="pname">${h.name}</div>
     <div class="pmeta"><span>${h.year}</span><span style="opacity:.4">·</span><span>${h.addr.split(',')[0]}</span></div>
     <div class="pdesc">${h.desc}</div>
-    ${h.hcm?`<div class="phcm">${h.hcm}</div>`:''}
-    ${h.link?`<a class="plink" href="${h.link}" target="_blank">Read more →</a>`:''}
+    ${h.hcm ? `<div class="phcm">${h.hcm}</div>` : ''}
+    ${h.link ? `<a class="plink" href="${h.link}" target="_blank" rel="noopener">Read more →</a>` : ''}
   </div>`;
 }
 
-const markers = {}, cardsEl = document.getElementById('cards');
+const markers = {};
+const cardsEl = document.getElementById('cards');
 const activeFilters = new Set(['schindler','neutra','lautner','other']);
 let selId = null;
 
@@ -290,80 +348,93 @@ function selectHome(id, fromCard) {
   if (selId) document.querySelector(`.card[data-id="${selId}"]`)?.classList.remove('sel');
   selId = id;
   const card = document.querySelector(`.card[data-id="${id}"]`);
-  if (card) { card.classList.add('sel'); if (!fromCard) card.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-  const {marker,data} = markers[id];
-  if (fromCard) map.setView([data.lat,data.lng], Math.max(map.getZoom(),15), {animate:true});
+  if (card) {
+    card.classList.add('sel');
+    if (!fromCard) card.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+  const {marker, data} = markers[id];
+  if (fromCard) map.setView([data.lat, data.lng], Math.max(map.getZoom(), 15), {animate:true});
   marker.openPopup();
 }
 
 map.on('popupclose', () => {
-  if (selId) { document.querySelector(`.card[data-id="${selId}"]`)?.classList.remove('sel'); selId=null; }
+  if (selId) {
+    document.querySelector(`.card[data-id="${selId}"]`)?.classList.remove('sel');
+    selId = null;
+  }
 });
 
-document.querySelectorAll('.fb').forEach(btn => btn.addEventListener('click', () => {
-  const cat = btn.dataset.cat;
-  if (activeFilters.has(cat)) { if (activeFilters.size===1) return; activeFilters.delete(cat); btn.classList.remove('on'); }
-  else { activeFilters.add(cat); btn.classList.add('on'); }
-  let n=0;
-  HOMES.forEach(h => {
-    if (!markers[h.id]) return;
-    const show = activeFilters.has(h.cat);
-    const card = document.querySelector(`.card[data-id="${h.id}"]`);
-    if (show) { if (!map.hasLayer(markers[h.id].marker)) map.addLayer(markers[h.id].marker); if(card) card.style.display=''; n++; }
-    else { if (map.hasLayer(markers[h.id].marker)) map.removeLayer(markers[h.id].marker); if(card) card.style.display='none'; }
-  });
-  // hcount removed
-}));
+/* Filter chips: click + keyboard */
+document.querySelectorAll('.fb').forEach(btn => {
+  const toggle = () => {
+    const cat = btn.dataset.cat;
+    if (activeFilters.has(cat)) {
+      if (activeFilters.size === 1) return;        // never let all be off
+      activeFilters.delete(cat);
+      btn.classList.remove('on');
+      btn.setAttribute('aria-pressed', 'false');
+    } else {
+      activeFilters.add(cat);
+      btn.classList.add('on');
+      btn.setAttribute('aria-pressed', 'true');
+    }
+    HOMES.forEach(h => {
+      if (!markers[h.id]) return;
+      const show = activeFilters.has(h.cat);
+      const card = document.querySelector(`.card[data-id="${h.id}"]`);
+      if (show) {
+        if (!map.hasLayer(markers[h.id].marker)) map.addLayer(markers[h.id].marker);
+        if (card) card.style.display = '';
+      } else {
+        if (map.hasLayer(markers[h.id].marker)) map.removeLayer(markers[h.id].marker);
+        if (card) card.style.display = 'none';
+      }
+    });
+  };
+  btn.addEventListener('click', toggle);
+});
 
 function addPin(h) {
-  const m = L.marker([h.lat,h.lng], {icon:icon(h.cat)});
-  m.bindPopup(popupHTML(h), {maxWidth:260, minWidth:240});
+  const m = L.marker([h.lat, h.lng], { icon: icon(h.cat), title: `${h.name} — ${h.by}, ${h.year}`, alt: `${h.name} pin` });
+  m.bindPopup(popupHTML(h), { maxWidth:260, minWidth:240 });
   m.addTo(map);
-  markers[h.id] = {marker:m, data:h};
+  markers[h.id] = { marker:m, data:h };
   m.on('click', () => selectHome(h.id, false));
 
   const c = C[h.cat];
   const div = document.createElement('div');
-  div.className = 'card'; div.dataset.id = h.id; div.dataset.cat = h.cat;
-  div.innerHTML = `<div class="ca" style="background:${c}"></div>
+  div.className = 'card';
+  div.dataset.id = h.id;
+  div.dataset.cat = h.cat;
+  div.setAttribute('role', 'listitem');
+  div.setAttribute('tabindex', '0');
+  div.setAttribute('aria-label', `${h.name}, ${h.by}, ${h.year}`);
+  div.innerHTML = `<div class="ca" style="background:${c}" aria-hidden="true"></div>
     <div class="ci">
       <div class="ct">${h.name}</div>
-      <div class="cm"><span>${h.year}</span><span class="cms">·</span><span>${h.by}</span></div>
+      <div class="cm"><span>${h.year}</span><span class="cms" aria-hidden="true">·</span><span>${h.by}</span></div>
       <div class="cadr">${h.addr.split(',')[0]}</div>
-      <span class="ctag" style="background:${c}18;color:${c}">${CL[h.cat]}</span>
+      <span class="ctag" style="background:${c}18; color:${c}">${CL[h.cat]}</span>
+      ${h.link ? `<a class="clink" href="${h.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Story →</a>` : ''}
     </div>`;
-  div.addEventListener('click', () => { if(!markers[h.id]) return; selectHome(h.id,true); });
+  div.addEventListener('click', () => selectHome(h.id, true));
+  div.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectHome(h.id, true); }
+  });
   cardsEl.appendChild(div);
 }
 
-async function geocode(addr) {
-  const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr)}&format=json&limit=1&countrycodes=us`,
-    {headers:{'Accept':'application/json'}});
-  const d = await r.json();
-  return d.length ? {lat:parseFloat(d[0].lat), lng:parseFloat(d[0].lon)} : null;
-}
-
 function init() {
-  const FIXED = {1: [34.1483, -118.3957], 2: [34.1328, -118.3838], 3: [34.1358, -118.3808], 4: [34.152, -118.389], 5: [34.1362, -118.3842], 6: [34.1355, -118.3846], 7: [34.144, -118.404], 8: [34.1348, -118.3854], 9: [34.1344, -118.3857], 10: [34.1455, -118.3975], 11: [34.1452, -118.4082], 12: [34.1352, -118.3851], 13: [34.1372, -118.3885], 14: [34.1378, -118.3848], 15: [34.1332, -118.3842], 16: [34.1362, -118.4062], 17: [34.149, -118.3957], 18: [34.1368, -118.3812], 19: [34.1413, -118.3965], 20: [34.1512, -118.3972], 21: [34.1462, -118.4038], 22: [34.1484, -118.3968], 23: [34.133, -118.3882], 24: [34.137, -118.4015], 25: [34.12768, -118.38443], 26: [34.1432, -118.4025], 27: [34.1338, -118.3942], 28: [34.1388, -118.4072], 29: [34.1318, -118.3922], 30: [34.1435, -118.4028], 31: [34.1372, -118.4058], 32: [34.1428, -118.4022]};
-
-  HOMES.forEach(h => {
-    const c = FIXED[h.id];
-    if (c) { h.lat = c[0]; h.lng = c[1]; }
-    if (h.fixedLat) { h.lat = h.fixedLat; h.lng = h.fixedLng; }
-    if (h.lat) addPin(h);
-  });
-
-  document.getElementById('loading').style.display='none';
-  // hcount removed
+  HOMES.forEach(h => { if (h.lat && h.lng) addPin(h); });
 }
-
 init();
-// Force Leaflet to recalculate size after iframe renders
+
+/* Force Leaflet to recalculate size after iframe renders */
 function fixMap() {
   map.invalidateSize();
   map.setView([34.136, -118.390], 15);
 }
-window.addEventListener('load', function() {
+window.addEventListener('load', () => {
   fixMap();
   setTimeout(fixMap, 300);
   setTimeout(fixMap, 1000);
